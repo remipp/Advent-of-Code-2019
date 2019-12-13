@@ -25,19 +25,19 @@ func (ins instruction) isWriteParam(i int) bool {
 type Computer struct {
 	memory []int
 	instructions map[int]instruction
-	instructionPointer int
+	instructionPointer *int
 }
 
 func (c Computer) Run() {
 	// Parse instruction
 	// Instruction number: %100
 	for {
-		i := c.memory[c.instructionPointer] % 100
+		i := c.memory[*c.instructionPointer] % 100
 		ins := c.instructions[i]
 		// Handle parameter modes
-		modes := c.memory[c.instructionPointer] / 100
-		params := c.memory[c.instructionPointer+1:c.instructionPointer+ins.size]
-		fmt.Println("Instruction:", i, "Params:", params, "Modes:", modes)
+		modes := c.memory[*c.instructionPointer] / 100
+		params := c.memory[*c.instructionPointer+1:*c.instructionPointer+ins.size]
+		fmt.Println(*c.instructionPointer, "Instruction:", i, "Params:", params, "Modes:", modes)
 		for x := 0; x < len(params); x++ {
 			m := modes % 10
 			modes /= 10
@@ -56,13 +56,14 @@ func (c Computer) Run() {
 		}
 		fmt.Println("With applied modes:", params)
 		ins.f(params...)
-		c.instructionPointer += ins.size
+		*c.instructionPointer += ins.size
 	}
 }
 
 func NewComputer(memory []int) Computer {
 	var c Computer
 	c.memory = memory
+	c.instructionPointer = new(int)
 	c.instructions = make(map[int]instruction)
 	c.instructions = map[int]instruction{
 		1: {4, []int{2}, func(params ...int) {
@@ -86,6 +87,31 @@ func NewComputer(memory []int) Computer {
 		}},
 		4: {2, []int{}, func(params ...int) {
 			fmt.Println(params[0])
+		}},
+		5: {3, []int{}, func(params ...int) {
+			if params[0] != 0 {
+				*c.instructionPointer = params[1]-3
+				fmt.Println("Set IP to", *c.instructionPointer+3)
+			}
+		}},
+		6: {3, []int{}, func(params ...int) {
+			if params[0] == 0 {
+				*c.instructionPointer = params[1]-3
+			}
+		}},
+		7: {4, []int{2}, func(params ...int) {
+			if params[0] < params[1] {
+				c.memory[params[2]] = 1
+			} else {
+				c.memory[params[2]] = 0
+			}
+		}},
+		8: {4, []int{2}, func(params ...int) {
+			if params[0] == params[1] {
+				c.memory[params[2]] = 1
+			} else {
+				c.memory[params[2]] = 0
+			}
 		}},
 		99: {1, []int{}, func(params ...int) {
 			// Stop computer somehow?
