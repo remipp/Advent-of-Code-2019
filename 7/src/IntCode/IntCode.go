@@ -2,10 +2,10 @@ package IntCode
 
 import (
 	"os"
-	"bufio"
 	"fmt"
 	"strconv"
 	"io"
+	"bufio"
 )
 
 type instruction struct {
@@ -36,8 +36,8 @@ func (c Computer) SetStdout(w io.Writer) {
 	*c.stdout = w
 }
 
-func (c Computer) SetStdin(r *bufio.Reader) {
-	c.stdin = r
+func (c Computer) SetStdin(r io.Reader) {
+	*c.stdin = *bufio.NewReader(r)
 }
 
 func (c Computer) Run() {
@@ -90,17 +90,20 @@ func NewComputer(memory []int) Computer {
 		}},
 		3: {2, []int{0}, func(params ...int) {
 			s, err := c.stdin.ReadString('\n')
+			fmt.Println("Read", s, "from stdin")
 			if err != nil {
 				fmt.Errorf("Couldn't read from Stdin: %v\n", err)
 			}
 			s = s[:len(s)-1]
 			n, err := strconv.Atoi(s)
+			fmt.Println("Read", n)
 			if err != nil {
 				fmt.Errorf("Couldn't convert to int: %v\n", err)
 			}
 			c.memory[params[0]] = n
 		}},
 		4: {2, []int{}, func(params ...int) {
+			fmt.Println("Writing", params[0], "to stdout")
 			fmt.Fprint(*c.stdout, params[0])
 		}},
 		5: {3, []int{}, func(params ...int) {
