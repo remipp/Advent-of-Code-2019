@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"strconv"
+	"log"
 )
 
 type instruction struct {
@@ -51,7 +52,7 @@ func (c Computer) Run() {
 			case 1: // Immediate Mode
 				continue
 			default:
-				fmt.Errorf("Unexpected parameter mode: %v", m)
+				log.Fatalf("Unexpected paramter mode %v", m)
 			}
 		}
 		fmt.Println("With applied modes:", params)
