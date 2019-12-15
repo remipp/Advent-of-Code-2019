@@ -1,11 +1,7 @@
 package IntCode
 
 import (
-	"os"
 	"fmt"
-	"strconv"
-	"io"
-	"bufio"
 )
 
 type instruction struct {
@@ -27,21 +23,22 @@ type Computer struct {
 	memory []int
 	instructions map[int]instruction
 	instructionPointer *int
-	stdin *bufio.Reader
-	stdout *io.Writer
+	stdin *<-chan int
+	stdout *chan<- int
 	halted *bool
+	OnHalt func()
 }
 
-func (c Computer) SetStdout(w io.Writer) {
+func (c Computer) SetStdout(w chan<- int) {
 	*c.stdout = w
 }
 
-func (c Computer) SetStdin(r io.Reader) {
-	*c.stdin = *bufio.NewReader(r)
+func (c Computer) SetStdin(r <-chan int) {
+	*c.stdin = r
 }
 
 func (c Computer) Run() {
-	// Parse instruction
+// Parse instruction
 	// Instruction number: %100
 	for !*c.halted {
 		i := c.memory[*c.instructionPointer] % 100
@@ -70,16 +67,16 @@ func (c Computer) Run() {
 		ins.f(params...)
 		*c.instructionPointer += ins.size
 	}
+	c.OnHalt()
 }
 
 func NewComputer(memory []int) Computer {
 	var c Computer
 	c.memory = memory
-	c.stdin = bufio.NewReader(os.Stdin)
-	c.stdout = new(io.Writer)
-	*c.stdout = os.Stdout
 	c.instructionPointer = new(int)
 	c.halted = new(bool)
+	c.stdin = new(<-chan int)
+	c.stdout = new(chan<- int)
 	c.instructions = make(map[int]instruction)
 	c.instructions = map[int]instruction{
 		1: {4, []int{2}, func(params ...int) {
@@ -89,22 +86,11 @@ func NewComputer(memory []int) Computer {
 			c.memory[params[2]] = params[0] * params[1]
 		}},
 		3: {2, []int{0}, func(params ...int) {
-			s, err := c.stdin.ReadString('\n')
-			fmt.Println("Read", s, "from stdin")
-			if err != nil {
-				fmt.Errorf("Couldn't read from Stdin: %v\n", err)
-			}
-			s = s[:len(s)-1]
-			n, err := strconv.Atoi(s)
-			fmt.Println("Read", n)
-			if err != nil {
-				fmt.Errorf("Couldn't convert to int: %v\n", err)
-			}
+			n := <-(*c.stdin)
 			c.memory[params[0]] = n
 		}},
 		4: {2, []int{}, func(params ...int) {
-			fmt.Println("Writing", params[0], "to stdout")
-			fmt.Fprint(*c.stdout, params[0])
+			(*c.stdout) <- params[0]
 		}},
 		5: {3, []int{}, func(params ...int) {
 			if params[0] != 0 {
@@ -132,7 +118,6 @@ func NewComputer(memory []int) Computer {
 			}
 		}},
 		99: {1, []int{}, func(params ...int) {
-			// Stop computer somehow?
 			fmt.Println("HALT")
 			*c.halted = true
 		}},
