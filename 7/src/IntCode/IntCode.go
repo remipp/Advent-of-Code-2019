@@ -45,7 +45,7 @@ func (c Computer) Run() {
 		ins := c.instructions[i]
 		// Handle parameter modes
 		modes := c.memory[*c.instructionPointer] / 100
-		params := c.memory[*c.instructionPointer+1:*c.instructionPointer+ins.size]
+		params := append([]int{}, c.memory[*c.instructionPointer+1:*c.instructionPointer+ins.size]...)
 		fmt.Println(*c.instructionPointer, "Instruction:", i, "Params:", params, "Modes:", modes)
 		for x := 0; x < len(params); x++ {
 			m := modes % 10
